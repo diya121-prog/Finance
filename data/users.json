@@ -5,5 +5,12 @@
         "full_name": "Test User",
         "id": 1,
         "created_at": "2025-11-09 10:33:16"
+    },
+    {
+        "email": "your@gmail.com",
+        "password": "$2y$10$F6eFbxP\/Sci2nV40\/b63BOVx\/eHTG1OiOM8FfTKCBlFZt2\/TVMNJK",
+        "full_name": "John Doe",
+        "id": 2,
+        "created_at": "2025-11-09 10:34:55"
     }
 ]
