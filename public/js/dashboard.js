@@ -7,7 +7,7 @@ if (!localStorage.getItem('token')) {
 }
 
 const user = JSON.parse(localStorage.getItem('user'));
-document.getElementById('userName').textContent = `Welcome, ${user.full_name}`;
+document.getElementById('userName').textContent = user.full_name;
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.clear();
@@ -46,17 +46,22 @@ async function loadDashboard() {
 function displayTopCategories(topCategories) {
     const container = document.getElementById('topCategories');
     if (!topCategories || topCategories.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">No data available</p>';
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">No data available yet</p>';
         return;
     }
     
-    container.innerHTML = topCategories.map(cat => `
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${cat.color}"></div>
-                <span class="text-sm font-medium">${cat.name}</span>
+    container.innerHTML = topCategories.map((cat, index) => `
+        <div class="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition mb-3 border border-gray-100">
+            <div class="flex items-center flex-1">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3" style="background: ${cat.color}20;">
+                    <div class="w-4 h-4 rounded-full" style="background: ${cat.color}"></div>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-800">${cat.name}</span>
+                    <p class="text-xs text-gray-500">Top #${index + 1} Category</p>
+                </div>
             </div>
-            <span class="text-sm font-bold">${formatCurrency(cat.total)}</span>
+            <span class="text-lg font-bold" style="color: ${cat.color}">${formatCurrency(cat.total)}</span>
         </div>
     `).join('');
 }
@@ -64,20 +69,34 @@ function displayTopCategories(topCategories) {
 function displayRecurringPayments(recurring) {
     const container = document.getElementById('recurringPayments');
     if (!recurring || recurring.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">No recurring payments detected yet. Upload more transactions to detect subscriptions.</p>';
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <div class="bg-purple-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-repeat text-purple-600 text-3xl"></i>
+                </div>
+                <p class="text-gray-500">No recurring payments detected yet.</p>
+                <p class="text-sm text-gray-400 mt-2">Upload more transactions to detect subscriptions.</p>
+            </div>
+        `;
         return;
     }
     
     container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             ${recurring.map(payment => `
-                <div class="border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h4 class="font-semibold text-gray-800">${payment.service_name}</h4>
-                            <p class="text-sm text-gray-500 capitalize">${payment.frequency}</p>
+                <div class="border-2 border-purple-100 rounded-2xl p-5 hover:border-purple-300 transition bg-gradient-to-br from-purple-50 to-white">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800 text-lg mb-1">${payment.service_name}</h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-semibold capitalize">
+                                    <i class="fas fa-clock mr-1"></i>${payment.frequency}
+                                </span>
+                            </div>
                         </div>
-                        <span class="text-lg font-bold text-red-600">${formatCurrency(payment.amount)}</span>
+                        <div class="text-right">
+                            <span class="text-2xl font-bold text-red-600">${formatCurrency(payment.amount)}</span>
+                        </div>
                     </div>
                 </div>
             `).join('')}
@@ -88,16 +107,26 @@ function displayRecurringPayments(recurring) {
 function displayInsights(insights) {
     const container = document.getElementById('insightsList');
     if (!insights || insights.length === 0) {
-        container.innerHTML = '<p class="text-gray-700">Upload transactions to get personalized insights!</p>';
+        container.innerHTML = `
+            <div>
+                <h4 class="font-bold text-gray-800 mb-2 text-lg">Financial Insights</h4>
+                <p class="text-gray-700">Upload transactions to get personalized insights about your spending patterns!</p>
+            </div>
+        `;
         return;
     }
     
     container.innerHTML = `
         <div>
-            <h4 class="font-semibold text-gray-800 mb-2">Insights</h4>
-            <ul class="list-disc list-inside space-y-1">
-                ${insights.map(insight => `<li class="text-sm text-gray-700">${insight.message}</li>`).join('')}
-            </ul>
+            <h4 class="font-bold text-gray-800 mb-3 text-lg">Your Financial Insights</h4>
+            <div class="space-y-2">
+                ${insights.map(insight => `
+                    <div class="flex items-start">
+                        <i class="fas fa-check-circle text-orange-500 mr-2 mt-1"></i>
+                        <p class="text-gray-700 font-medium">${insight.message}</p>
+                    </div>
+                `).join('')}
+            </div>
         </div>
     `;
 }
@@ -108,20 +137,22 @@ function createCategoryPieChart(categoryData) {
     const ctx = document.getElementById('categoryPieChart').getContext('2d');
     
     if (!categoryData || categoryData.length === 0) {
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#999';
+        ctx.font = '16px Inter';
+        ctx.fillStyle = '#9ca3af';
         ctx.textAlign = 'center';
-        ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.fillText('No spending data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
         return;
     }
     
     charts.pie = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: categoryData.map(c => c.name),
             datasets: [{
                 data: categoryData.map(c => parseFloat(c.total)),
-                backgroundColor: categoryData.map(c => c.color)
+                backgroundColor: categoryData.map(c => c.color),
+                borderWidth: 0,
+                hoverOffset: 15
             }]
         },
         options: {
@@ -129,9 +160,44 @@ function createCategoryPieChart(categoryData) {
             maintainAspectRatio: true,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    borderRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += formatCurrency(context.parsed);
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return label + ' (' + percentage + '%)';
+                        }
+                    }
                 }
-            }
+            },
+            cutout: '60%'
         }
     });
 }
@@ -144,45 +210,120 @@ async function createMonthlyTrendChart() {
         const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
         
         if (!data.trend || data.trend.length === 0) {
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#999';
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#9ca3af';
             ctx.textAlign = 'center';
-            ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            ctx.fillText('No trend data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
             return;
         }
         
         charts.trend = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.trend.map(t => t.month),
+                labels: data.trend.map(t => {
+                    const [year, month] = t.month.split('-');
+                    return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                }),
                 datasets: [
                     {
                         label: 'Income',
                         data: data.trend.map(t => parseFloat(t.income)),
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.3
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
                     },
                     {
                         label: 'Expenses',
                         data: data.trend.map(t => parseFloat(t.expenses)),
                         borderColor: '#ef4444',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.3
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 plugins: {
                     legend: {
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 13,
+                                family: 'Inter',
+                                weight: '600'
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        borderRadius: 8,
+                        titleFont: {
+                            size: 14,
+                            family: 'Inter'
+                        },
+                        bodyFont: {
+                            size: 13,
+                            family: 'Inter'
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += formatCurrency(context.parsed.y);
+                                return label;
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Inter'
+                            },
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Inter'
+                            }
+                        }
                     }
                 }
             }
@@ -223,33 +364,34 @@ function displayTransactions(transactionList) {
     const tbody = document.getElementById('transactionsTable');
     
     if (!transactionList || transactionList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No transactions found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400">No transactions found. Add your first transaction!</td></tr>';
         return;
     }
     
     tbody.innerHTML = transactionList.map(t => `
-        <tr class="border-b hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm">${formatDate(t.date)}</td>
-            <td class="px-4 py-3 text-sm">${t.description}</td>
-            <td class="px-4 py-3 text-sm">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs" style="background-color: ${t.category_color}20; color: ${t.category_color}">
+        <tr>
+            <td class="px-4 py-4 text-sm font-medium text-gray-700">${formatDate(t.date)}</td>
+            <td class="px-4 py-4 text-sm font-semibold text-gray-800">${t.description}</td>
+            <td class="px-4 py-4 text-sm">
+                <span class="category-badge" style="background-color: ${t.category_color}20; color: ${t.category_color}">
                     ${t.category_name || 'Uncategorized'}
                 </span>
             </td>
-            <td class="px-4 py-3 text-sm font-semibold ${t.type === 'credit' ? 'text-green-600' : 'text-red-600'}">
+            <td class="px-4 py-4 text-sm font-bold ${t.type === 'credit' ? 'text-green-600' : 'text-red-600'}">
                 ${t.type === 'credit' ? '+' : '-'}${formatCurrency(t.amount)}
             </td>
-            <td class="px-4 py-3 text-sm">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs ${t.type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            <td class="px-4 py-4 text-sm">
+                <span class="category-badge ${t.type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                    <i class="fas fa-${t.type === 'credit' ? 'arrow-up' : 'arrow-down'} mr-1"></i>
                     ${t.type === 'credit' ? 'Income' : 'Expense'}
                 </span>
             </td>
-            <td class="px-4 py-3 text-sm">
-                <button onclick="editTransaction(${t.id})" class="text-blue-600 hover:text-blue-800 mr-2">
-                    <i class="fas fa-edit"></i>
+            <td class="px-4 py-4 text-sm text-center">
+                <button onclick="editTransaction(${t.id})" class="text-blue-600 hover:text-blue-800 mr-3 transition">
+                    <i class="fas fa-edit text-lg"></i>
                 </button>
-                <button onclick="deleteTransaction(${t.id})" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-trash"></i>
+                <button onclick="deleteTransaction(${t.id})" class="text-red-600 hover:text-red-800 transition">
+                    <i class="fas fa-trash text-lg"></i>
                 </button>
             </td>
         </tr>
@@ -290,6 +432,7 @@ document.getElementById('addTransactionForm').addEventListener('submit', async (
         await API.transactions.add(transaction);
         showMessage('message', 'Transaction added successfully!', 'success');
         e.target.reset();
+        document.getElementById('transactionDate').valueAsDate = new Date();
         await loadDashboard();
         await loadTransactions();
     } catch (error) {

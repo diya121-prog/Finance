@@ -6,20 +6,20 @@ const loginFormElement = document.getElementById('loginFormElement');
 const registerFormElement = document.getElementById('registerFormElement');
 
 loginTab.addEventListener('click', () => {
-    loginTab.classList.add('border-indigo-600', 'text-indigo-600');
-    loginTab.classList.remove('text-gray-500');
-    registerTab.classList.remove('border-indigo-600', 'text-indigo-600');
-    registerTab.classList.add('text-gray-500');
+    loginTab.classList.add('tab-active');
+    loginTab.classList.remove('text-gray-600', 'hover:bg-gray-100');
+    registerTab.classList.remove('tab-active');
+    registerTab.classList.add('text-gray-600', 'hover:bg-gray-100');
     
     loginForm.classList.remove('hidden');
     registerForm.classList.add('hidden');
 });
 
 registerTab.addEventListener('click', () => {
-    registerTab.classList.add('border-indigo-600', 'text-indigo-600');
-    registerTab.classList.remove('text-gray-500');
-    loginTab.classList.remove('border-indigo-600', 'text-indigo-600');
-    loginTab.classList.add('text-gray-500');
+    registerTab.classList.add('tab-active');
+    registerTab.classList.remove('text-gray-600', 'hover:bg-gray-100');
+    loginTab.classList.remove('tab-active');
+    loginTab.classList.add('text-gray-600', 'hover:bg-gray-100');
     
     registerForm.classList.remove('hidden');
     loginForm.classList.add('hidden');
