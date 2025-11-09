@@ -19,5 +19,12 @@
         "full_name": "John Doe",
         "id": 3,
         "created_at": "2025-11-09 10:53:06"
+    },
+    {
+        "email": "abc@gmail.com",
+        "password": "$2y$10$8N3y22Aw3PluMR64AW1BtOu47cBg.\/h1g4QX50Xt0CqBX00jZ4eva",
+        "full_name": "Zeel",
+        "id": 4,
+        "created_at": "2025-11-09 13:27:42"
     }
 ]
