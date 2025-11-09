@@ -100,12 +100,12 @@ elseif ($method === 'POST') {
 }
 
 elseif ($method === 'PUT') {
-    $id = (int)($_GET['id'] ?? 0);
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
     if (!$id) {
         sendError('Transaction ID required', 400);
     }
-    
-    $input = json_decode(file_get_contents('php://input'), true);
     
     $transaction = $db->findOne('transactions', 'id', $id);
     if (!$transaction || $transaction['user_id'] !== $userId) {
