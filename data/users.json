@@ -12,5 +12,12 @@
         "full_name": "John Doe",
         "id": 2,
         "created_at": "2025-11-09 10:34:55"
+    },
+    {
+        "email": "you@gmail.com",
+        "password": "$2y$10$sCcrFhBIuaGnV.M5h6lz9e7MCryz80kHWzAB57cSVQUpbHh19Nywe",
+        "full_name": "John Doe",
+        "id": 3,
+        "created_at": "2025-11-09 10:53:06"
     }
 ]
