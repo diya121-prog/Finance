@@ -1,9 +1,13 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/helpers/jwt.php';
-require_once __DIR__ . '/simple_db.php';
+require_once __DIR__ . '/database.php';
 
-$db = new SimpleDatabase();
+try {
+    $conn = DatabaseManager::getConnection();
+} catch (Exception $e) {
+    sendError('Database connection failed', 500);
+}
 
 $userData = JWTHandler::getUserFromRequest();
 if (!$userData) {
@@ -17,31 +21,25 @@ if ($method === 'GET') {
     $action = $_GET['action'] ?? 'list';
     
     if ($action === 'list') {
-        $transactions = $db->findAll('transactions', 'user_id', $userId);
-        
-        $categories = $db->findAll('categories');
-        $categoryMap = [];
-        foreach ($categories as $cat) {
-            $categoryMap[$cat['id']] = $cat;
+        try {
+            $stmt = $conn->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC");
+            $stmt->execute([$userId]);
+            $transactions = $stmt->fetchAll();
+            
+            sendResponse(['transactions' => $transactions]);
+        } catch (Exception $e) {
+            sendError('Failed to fetch transactions: ' . $e->getMessage(), 500);
         }
-        
-        foreach ($transactions as &$trans) {
-            if (isset($trans['category_id']) && isset($categoryMap[$trans['category_id']])) {
-                $trans['category_name'] = $categoryMap[$trans['category_id']]['name'];
-                $trans['category_color'] = $categoryMap[$trans['category_id']]['color'];
-            }
-        }
-        
-        usort($transactions, function($a, $b) {
-            return strtotime($b['date']) - strtotime($a['date']);
-        });
-        
-        sendResponse(['transactions' => $transactions]);
     }
     
     elseif ($action === 'categories') {
-        $categories = $db->findAll('categories');
-        sendResponse(['categories' => $categories]);
+        try {
+            $stmt = $conn->query("SELECT * FROM categories");
+            $categories = $stmt->fetchAll();
+            sendResponse(['categories' => $categories]);
+        } catch (Exception $e) {
+            sendError('Failed to fetch categories: ' . $e->getMessage(), 500);
+        }
     }
 }
 
@@ -54,22 +52,30 @@ elseif ($method === 'POST') {
             sendError('Missing required fields', 400);
         }
         
-        $transactionData = [
-            'user_id' => $userId,
-            'date' => $input['date'],
-            'description' => htmlspecialchars($input['description']),
-            'amount' => (float)$input['amount'],
-            'type' => $input['type'],
-            'category_id' => $input['category_id'] ?? null,
-            'notes' => isset($input['notes']) ? htmlspecialchars($input['notes']) : ''
-        ];
-        
-        $transaction = $db->insert('transactions', $transactionData);
-        
-        sendResponse([
-            'message' => 'Transaction added successfully',
-            'transaction' => $transaction
-        ], 201);
+        try {
+            $stmt = $conn->prepare("INSERT INTO transactions (user_id, date, description, amount, type, category) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $userId,
+                $input['date'],
+                htmlspecialchars($input['description']),
+                (float)$input['amount'],
+                $input['type'],
+                $input['category'] ?? ''
+            ]);
+            
+            $transactionId = $conn->lastInsertId();
+            
+            $stmt = $conn->prepare("SELECT * FROM transactions WHERE id = ?");
+            $stmt->execute([$transactionId]);
+            $transaction = $stmt->fetch();
+            
+            sendResponse([
+                'message' => 'Transaction added successfully',
+                'transaction' => $transaction
+            ], 201);
+        } catch (Exception $e) {
+            sendError('Failed to add transaction: ' . $e->getMessage(), 500);
+        }
     }
     
     elseif ($action === 'bulk') {
@@ -77,25 +83,29 @@ elseif ($method === 'POST') {
             sendError('Invalid bulk data', 400);
         }
         
-        $added = [];
-        foreach ($input['transactions'] as $trans) {
-            $transactionData = [
-                'user_id' => $userId,
-                'date' => $trans['date'],
-                'description' => htmlspecialchars($trans['description']),
-                'amount' => (float)$trans['amount'],
-                'type' => $trans['type'],
-                'category_id' => $trans['category_id'] ?? null,
-                'notes' => isset($trans['notes']) ? htmlspecialchars($trans['notes']) : ''
-            ];
+        try {
+            $stmt = $conn->prepare("INSERT INTO transactions (user_id, date, description, amount, type, category) VALUES (?, ?, ?, ?, ?, ?)");
+            $added = 0;
             
-            $added[] = $db->insert('transactions', $transactionData);
+            foreach ($input['transactions'] as $trans) {
+                $stmt->execute([
+                    $userId,
+                    $trans['date'],
+                    htmlspecialchars($trans['description']),
+                    (float)$trans['amount'],
+                    $trans['type'],
+                    $trans['category'] ?? ''
+                ]);
+                $added++;
+            }
+            
+            sendResponse([
+                'message' => $added . ' transactions added successfully',
+                'count' => $added
+            ], 201);
+        } catch (Exception $e) {
+            sendError('Failed to add transactions: ' . $e->getMessage(), 500);
         }
-        
-        sendResponse([
-            'message' => count($added) . ' transactions added successfully',
-            'count' => count($added)
-        ], 201);
     }
 }
 
@@ -107,22 +117,53 @@ elseif ($method === 'PUT') {
         sendError('Transaction ID required', 400);
     }
     
-    $transaction = $db->findOne('transactions', 'id', $id);
-    if (!$transaction || $transaction['user_id'] !== $userId) {
-        sendError('Transaction not found', 404);
+    try {
+        $stmt = $conn->prepare("SELECT * FROM transactions WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        $transaction = $stmt->fetch();
+        
+        if (!$transaction) {
+            sendError('Transaction not found', 404);
+        }
+        
+        $updates = [];
+        $params = [];
+        
+        if (isset($input['date'])) {
+            $updates[] = "date = ?";
+            $params[] = $input['date'];
+        }
+        if (isset($input['description'])) {
+            $updates[] = "description = ?";
+            $params[] = htmlspecialchars($input['description']);
+        }
+        if (isset($input['amount'])) {
+            $updates[] = "amount = ?";
+            $params[] = (float)$input['amount'];
+        }
+        if (isset($input['type'])) {
+            $updates[] = "type = ?";
+            $params[] = $input['type'];
+        }
+        if (isset($input['category'])) {
+            $updates[] = "category = ?";
+            $params[] = $input['category'];
+        }
+        
+        if (count($updates) > 0) {
+            $updates[] = "updated_at = CURRENT_TIMESTAMP";
+            $params[] = $id;
+            $params[] = $userId;
+            
+            $sql = "UPDATE transactions SET " . implode(', ', $updates) . " WHERE id = ? AND user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+        }
+        
+        sendResponse(['message' => 'Transaction updated successfully']);
+    } catch (Exception $e) {
+        sendError('Failed to update transaction: ' . $e->getMessage(), 500);
     }
-    
-    $updateData = [];
-    if (isset($input['date'])) $updateData['date'] = $input['date'];
-    if (isset($input['description'])) $updateData['description'] = htmlspecialchars($input['description']);
-    if (isset($input['amount'])) $updateData['amount'] = (float)$input['amount'];
-    if (isset($input['type'])) $updateData['type'] = $input['type'];
-    if (isset($input['category_id'])) $updateData['category_id'] = $input['category_id'];
-    if (isset($input['notes'])) $updateData['notes'] = htmlspecialchars($input['notes']);
-    
-    $db->update('transactions', $id, $updateData);
-    
-    sendResponse(['message' => 'Transaction updated successfully']);
 }
 
 elseif ($method === 'DELETE') {
@@ -131,14 +172,22 @@ elseif ($method === 'DELETE') {
         sendError('Transaction ID required', 400);
     }
     
-    $transaction = $db->findOne('transactions', 'id', $id);
-    if (!$transaction || $transaction['user_id'] !== $userId) {
-        sendError('Transaction not found', 404);
+    try {
+        $stmt = $conn->prepare("SELECT * FROM transactions WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        $transaction = $stmt->fetch();
+        
+        if (!$transaction) {
+            sendError('Transaction not found', 404);
+        }
+        
+        $stmt = $conn->prepare("DELETE FROM transactions WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        
+        sendResponse(['message' => 'Transaction deleted successfully']);
+    } catch (Exception $e) {
+        sendError('Failed to delete transaction: ' . $e->getMessage(), 500);
     }
-    
-    $db->delete('transactions', $id);
-    
-    sendResponse(['message' => 'Transaction deleted successfully']);
 }
 
 else {
