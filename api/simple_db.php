@@ -6,7 +6,14 @@ class SimpleDatabase {
     public function __construct() {
         $this->dataDir = __DIR__ . '/../data/';
         if (!file_exists($this->dataDir)) {
-            mkdir($this->dataDir, 0777, true);
+            if (!mkdir($this->dataDir, 0777, true)) {
+                error_log("Failed to create data directory: " . $this->dataDir);
+                throw new Exception("Unable to create data directory");
+            }
+        }
+        if (!is_writable($this->dataDir)) {
+            error_log("Data directory is not writable: " . $this->dataDir);
+            throw new Exception("Data directory is not writable");
         }
     }
     
@@ -25,7 +32,11 @@ class SimpleDatabase {
     
     private function write($table, $data) {
         $file = $this->getFilePath($table);
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+        $result = file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+        if ($result === false) {
+            error_log("Failed to write to file: " . $file);
+            throw new Exception("Failed to write to database file");
+        }
     }
     
     public function insert($table, $data) {

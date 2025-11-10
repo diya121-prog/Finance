@@ -4,3 +4,5 @@ composer.lock
 uploads/
 *.log
 .DS_Store
+data/*.json
+!data/.gitkeep
