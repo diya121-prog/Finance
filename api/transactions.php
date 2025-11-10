@@ -34,8 +34,9 @@ if ($method === 'GET') {
     
     elseif ($action === 'categories') {
         try {
-            $stmt = $conn->query("SELECT * FROM categories");
-            $categories = $stmt->fetchAll();
+            require_once __DIR__ . '/simple_db.php';
+            $simpleDb = new SimpleDatabase();
+            $categories = $simpleDb->findAll('categories');
             sendResponse(['categories' => $categories]);
         } catch (Exception $e) {
             sendError('Failed to fetch categories: ' . $e->getMessage(), 500);

@@ -26,8 +26,9 @@ if ($method === 'GET') {
             $stmt->execute([$userId]);
             $transactions = $stmt->fetchAll();
             
-            $stmt = $conn->query("SELECT * FROM categories");
-            $categories = $stmt->fetchAll();
+            require_once __DIR__ . '/simple_db.php';
+            $simpleDb = new SimpleDatabase();
+            $categories = $simpleDb->findAll('categories');
             
             $totalIncome = 0;
             $totalExpenses = 0;
@@ -136,8 +137,9 @@ if ($method === 'GET') {
             $stmt->execute([$userId, $startDate, $endDate]);
             $transactions = $stmt->fetchAll();
             
-            $stmt = $conn->query("SELECT * FROM categories");
-            $categories = $stmt->fetchAll();
+            require_once __DIR__ . '/simple_db.php';
+            $simpleDb = new SimpleDatabase();
+            $categories = $simpleDb->findAll('categories');
             
             $categoryMap = [];
             foreach ($categories as $cat) {
