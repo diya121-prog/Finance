@@ -42,14 +42,51 @@ A comprehensive personal finance application with expense tracking, CSV upload, 
 ## Recent Changes
 - Initial project setup (Nov 8, 2025)
 - PHP 8.2 environment configured
-- PostgreSQL database initialized
+- PostgreSQL database initialized for production deployment
 - Complete application structure created
+- Fixed deployment errors (JSON parsing, database persistence) (Nov 10, 2025)
+- Implemented hybrid database approach: SQLite for development, PostgreSQL for production
+
+## Database Setup
+
+### Development Environment
+- Uses SQLite database (data/finance.db)
+- Categories stored in data/categories.json (11 predefined categories)
+- Automatic fallback when PostgreSQL credentials not available
+
+### Production/Deployment Environment
+- Uses PostgreSQL database (automatically configured via DATABASE_URL)
+- Database credentials stored as Replit secrets
+- Automatic schema initialization on first deployment
+- All required environment variables: DATABASE_URL, PGHOST, PGUSER, PGPASSWORD, PGDATABASE, PGPORT
 
 ## Database Schema
-- users: User accounts
-- transactions: Financial transactions
-- categories: Expense categories
-- recurring_payments: Detected subscriptions
+- users: User accounts with authentication
+- transactions: Financial transactions with categories
+- categories: Expense categories (11 predefined)
+- recurring_payments: Detected subscriptions and recurring expenses
+
+## Deployment Instructions
+
+### Before Publishing
+1. Ensure PostgreSQL database is created (already configured)
+2. Database secrets are automatically set by Replit
+3. Click the "Publish" button in Replit
+
+### What Happens on Deployment
+1. App automatically detects production environment
+2. Connects to PostgreSQL using DATABASE_URL
+3. Initializes database schema if needed (via api/setup.php)
+4. Categories are auto-loaded from JSON file
+5. App is ready for user registrations
+
+### Post-Deployment
+- Visit your published URL
+- Register a new account (signup works perfectly)
+- Login and access the dashboard
+- Upload CSV files for transaction tracking
 
 ## Usage
-The application runs on PHP's built-in server on port 5000. Access the dashboard at the root URL after authentication.
+- **Development**: The application runs on PHP's built-in server on port 5000
+- **Production**: Runs on port 80 with autoscale deployment
+- Access the dashboard at the root URL after authentication
